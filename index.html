@@ -1,46 +1,432 @@
-v<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Les Astromaths / Astromatocilor</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        display: ['Fredoka', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'], display: ['Fredoka', 'sans-serif'] },
                     colors: {
-                        space: {
-                            900: '#0F0C20',
-                            800: '#15102A',
-                            700: '#211A40',
-                            600: '#2D2256',
-                        },
-                        star: {
-                            gold: '#FFD166',
-                            yellow: '#FFEC80',
-                        },
-                        astropink: '#FF2E93',
-                        astroblue: '#00F0FF',
-                        astrogreen: '#00FF87',
-                        astropurple: '#9D4EDD'
-                    },
-                    animation: {
-                        'float': 'float 4s ease-in-out infinite',
-                        'pulse-glow': 'pulseGlow 2s infinite',
-                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: '
+                        space: { 900: '#0F0C20', 800: '#15102A', 700: '#211A40' },
+                        star: { gold: '#FFD166', yellow: '#FFEC80' },
+                        astropink: '#FF2E93', astroblue: '#00F0FF', astrogreen: '#00FF87', astropurple: '#9D4EDD'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: radial-gradient(circle at 50% 20%, #1a103c 0%, #0b0718 100%); min-height: 100vh; color: #FFF; user-select: none; }
+        .glass-panel { background: rgba(33, 26, 64, 0.65); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s ease; }
+        .btn-astro { background: linear-gradient(135deg, #FF2E93 0%, #FF8E53 100%); box-shadow: 0 4px 20px rgba(255, 46, 147, 0.4); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .star { position: absolute; background-color: white; border-radius: 50%; opacity: 0.5; animation: twinkle var(--duration) infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 0.9; transform: scale(1.2); } }
+    </style>
+</head>
+<body class="font-sans text-white relative flex flex-col justify-between min-h-screen">
+    <div id="stars-container" class="stars-bg"></div>
+
+    <div class="relative z-10 container mx-auto px-4 py-6 max-w-4xl flex-grow flex flex-col justify-between">
+        <header class="flex items-center justify-between glass-panel rounded-2xl p-4 mb-6 shadow-xl">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showScreen('menu')">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-astropink to-astroblue flex items-center justify-center shadow-lg">
+                    <i data-lucide="rocket" class="w-7 h-7 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-display text-2xl font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-star-yellow to-astroblue">ASTROMATHS</h1>
+                    <p id="ui-subtitle" class="text-xs text-purple-200">Mission Galactique des Nombres</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="toggleLanguage()" class="px-3 py-2 rounded-xl glass-card text-xs font-bold flex items-center gap-1.5 hover:border-astroblue transition">
+                    <span id="lang-flag">🇫🇷</span> <span id="lang-code" class="text-astroblue">FR</span>
+                </button>
+                <button onclick="toggleSound()" class="p-3 rounded-xl glass-card text-purple-200">
+                    <i data-lucide="volume-2" id="sound-icon" class="w-5 h-5"></i>
+                </button>
+                <button onclick="showScreen('stats')" class="p-3 rounded-xl glass-card text-purple-200 flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5 text-astroblue"></i>
+                    <span id="ui-nav-stats" class="hidden sm:inline text-xs font-bold text-astroblue">Stats</span>
+                </button>
+                <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
+                    <i data-lucide="star" class="w-5 h-5 text-star-gold fill-star-gold"></i>
+                    <span id="total-stars" class="font-display text-xl font-bold text-star-gold">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="screen-menu" class="screen-view flex-grow flex flex-col justify-center">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 text-center shadow-2xl">
+                <h2 id="ui-menu-title" class="font-display text-3xl font-bold mb-2">Prêt pour l'aventure ?</h2>
+                <p id="ui-menu-desc" class="text-purple-200 text-sm mb-6">Choisis tes réglages et entraîne-toi !</p>
+
+                <div class="mb-6">
+                    <label id="ui-op-label" class="block text-xs font-bold text-purple-300 uppercase mb-3">Type d'opération</label>
+                    <div class="flex justify-center gap-3 max-w-md mx-auto">
+                        <button onclick="selectOperation('multiply')" id="op-btn-multiply" class="op-select-btn flex-1 py-3 px-3 rounded-xl font-display font-bold text-xs border bg-astropurple/80 border-astropink text-white">
+                            <i data-lucide="x" class="w-4 h-4 inline"></i> <span id="ui-op-mult">Multiplication</span>
+                        </button>
+                        <button onclick="selectOperation('add')" id="op-btn-add" class="op-select-btn flex-1 py-3 px-3 rounded-xl font-display font-bold text-xs border border-white/10 bg-white/5 text-purple-200">
+                            <i data-lucide="plus" class="w-4 h-4 inline"></i> <span id="ui-op-add">Addition</span>
+                        </button>
+                        <button onclick="selectOperation('mix')" id="op-btn-mix" class="op-select-btn flex-1 py-3 px-3 rounded-xl font-display font-bold text-xs border border-white/10 bg-white/5 text-purple-200">
+                            <i data-lucide="shuffle" class="w-4 h-4 inline"></i> <span id="ui-op-mix">Mixte</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-3 px-2">
+                        <span id="tables-title" class="text-xs font-bold text-purple-300 uppercase">Choisir les tables</span>
+                        <div class="flex gap-2 text-xs">
+                            <button onclick="selectAllTables()" id="ui-select-all" class="text-astroblue hover:underline">Toutes</button>
+                            <span>|</span>
+                            <button onclick="clearTableSelection()" id="ui-clear-all" class="text-purple-300 hover:underline">Effacer</button>
+                        </div>
+                    </div>
+                    <div id="table-selector-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-4"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <button onclick="startPracticeMode()" class="btn-astro p-5 rounded-2xl flex items-center justify-between">
+                        <div class="text-left">
+                            <div id="ui-mode-practice-title" class="font-display text-lg font-bold">Mode Entraînement</div>
+                            <div id="ui-mode-practice-desc" class="text-xs text-white/80">10 questions • Sans stress</div>
+                        </div>
+                        <i data-lucide="play" class="w-6 h-6 fill-white"></i>
+                    </button>
+                    <button onclick="startTimedMode()" class="glass-card p-5 rounded-2xl flex items-center justify-between border-astroblue/30">
+                        <div class="text-left">
+                            <div id="ui-mode-timed-title" class="font-display text-lg font-bold text-astroblue">Défi Chrono (60s)</div>
+                            <div id="ui-mode-timed-desc" class="text-xs text-purple-200">Maximum de calculs !</div>
+                        </div>
+                        <i data-lucide="zap" class="w-6 h-6 text-astroblue fill-astroblue"></i>
+                    </button>
+                </div>
+
+                <div class="mt-6 flex items-center justify-center text-xs text-purple-200">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="qcm-mode-toggle" class="w-4 h-4 rounded bg-space-800">
+                        <span id="ui-qcm-label">Mode Choix Multiple (QCM)</span>
+                    </label>
+                </div>
+            </div>
+        </main>
+
+        <main id="screen-game" class="screen-view hidden flex-grow flex flex-col justify-center">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 text-center">
+                <div class="flex items-center justify-between mb-6">
+                    <div id="game-progress-container" class="flex items-center gap-2">
+                        <i data-lucide="target" class="w-5 h-5 text-astropink"></i>
+                        <span id="game-progress-text" class="font-display font-bold text-lg">Question 1/10</span>
+                    </div>
+                    <div id="game-timer-container" class="hidden items-center gap-2 bg-astroblue/20 text-astroblue px-4 py-1.5 rounded-full border border-astroblue/40">
+                        <i data-lucide="timer" class="w-5 h-5"></i>
+                        <span id="game-timer-text" class="font-display font-bold text-xl">60s</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="question-timer-text" class="text-xs font-mono text-purple-300">0.0s</span>
+                        <div class="bg-star-gold/20 px-3 py-1 rounded-full border border-star-gold/40 text-star-gold font-bold" id="game-score-text">Score: 0</div>
+                    </div>
+                </div>
+
+                <div class="my-8 py-6 rounded-2xl bg-space-900/60 border border-white/5">
+                    <p id="game-question-op" class="font-display text-5xl sm:text-7xl font-bold tracking-wider">8 × 7 = ?</p>
+                    <p id="game-feedback" class="h-6 mt-3 text-sm font-bold text-astrogreen opacity-0">Bravo !</p>
+                </div>
+
+                <div id="input-zone-keyboard" class="max-w-md mx-auto">
+                    <div id="user-answer-display" class="font-display text-3xl font-bold text-astroblue bg-space-800 border-2 border-astroblue/50 rounded-xl py-3 mb-4 h-14 flex items-center justify-center">?</div>
+                    <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                        <button onclick="pressNumpad('1')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">1</button>
+                        <button onclick="pressNumpad('2')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">2</button>
+                        <button onclick="pressNumpad('3')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">3</button>
+                        <button onclick="pressNumpad('4')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">4</button>
+                        <button onclick="pressNumpad('5')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">5</button>
+                        <button onclick="pressNumpad('6')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">6</button>
+                        <button onclick="pressNumpad('7')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">7</button>
+                        <button onclick="pressNumpad('8')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">8</button>
+                        <button onclick="pressNumpad('9')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">9</button>
+                        <button onclick="pressNumpad('clear')" class="btn-secondary py-3.5 rounded-xl text-astropink font-bold">C</button>
+                        <button onclick="pressNumpad('0')" class="btn-secondary py-3.5 rounded-xl font-display text-2xl font-bold">0</button>
+                        <button onclick="submitAnswer()" class="btn-astro py-3.5 rounded-xl font-display text-xl font-bold text-white">OK</button>
+                    </div>
+                </div>
+
+                <div id="input-zone-qcm" class="hidden grid grid-cols-2 gap-4 max-w-md mx-auto"></div>
+
+                <button onclick="quitGame()" id="ui-quit-btn" class="mt-4 text-xs text-purple-300 hover:text-white">Abandonner</button>
+            </div>
+        </main>
+
+        <main id="screen-result" class="screen-view hidden flex-grow flex flex-col justify-center">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 text-center">
+                <h2 id="ui-res-title" class="font-display text-3xl font-bold mb-1">Mission Accomplie !</h2>
+                <p id="ui-res-subtitle" class="text-purple-200 text-sm mb-4">Bravo !</p>
+
+                <div id="new-record-badge" class="hidden mb-4 inline-block bg-yellow-400 text-space-900 font-extrabold px-4 py-1.5 rounded-full text-sm">NOUVEAU RECORD !</div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto mb-6">
+                    <div class="glass-card p-3 rounded-2xl"><p id="ui-res-lbl-score" class="text-xs text-purple-300">Score</p><p id="res-score" class="font-display text-2xl font-bold text-star-gold">0</p></div>
+                    <div class="glass-card p-3 rounded-2xl"><p id="ui-res-lbl-acc" class="text-xs text-purple-300">Précision</p><p id="res-accuracy" class="font-display text-2xl font-bold text-astrogreen">100%</p></div>
+                    <div class="glass-card p-3 rounded-2xl"><p id="ui-res-lbl-avg" class="text-xs text-purple-300">Temps Moyen</p><p id="res-avg-time" class="font-display text-2xl font-bold text-astroblue">0.0s</p></div>
+                    <div class="glass-card p-3 rounded-2xl"><p id="ui-res-lbl-fastest" class="text-xs text-purple-300">Plus rapide</p><p id="res-fastest-time" class="font-display text-2xl font-bold text-astropink">0.0s</p></div>
+                </div>
+
+                <div id="errors-summary-box" class="hidden mb-6 text-left max-w-md mx-auto bg-space-900/80 p-4 rounded-xl">
+                    <p id="ui-errors-title" class="text-xs font-bold text-red-400 mb-2">Erreurs :</p>
+                    <ul id="errors-list" class="text-xs text-purple-200 space-y-1"></ul>
+                </div>
+
+                <div class="flex gap-3 justify-center max-w-md mx-auto">
+                    <button onclick="restartGame()" class="btn-astro py-3 px-6 rounded-xl font-bold flex-1" id="ui-btn-replay">Rejouer</button>
+                    <button onclick="showScreen('menu')" class="btn-secondary py-3 px-6 rounded-xl font-bold flex-1" id="ui-btn-home">Menu</button>
+                </div>
+            </div>
+        </main>
+
+        <main id="screen-stats" class="screen-view hidden flex-grow flex flex-col justify-center">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-3xl mx-auto w-full">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="ui-stats-title" class="font-display text-2xl font-bold">Statistiques</h2>
+                    <button onclick="showScreen('menu')" class="btn-secondary p-2 rounded-xl">X</button>
+                </div>
+
+                <div class="flex justify-center gap-2 mb-6 bg-space-900/50 p-1 rounded-xl">
+                    <button onclick="filterStats('all')" id="stat-tab-all" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-astroblue/20 text-astroblue" id="ui-tab-all">Tous</button>
+                    <button onclick="filterStats('multiply')" id="stat-tab-multiply" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-purple-300" id="ui-tab-mult">Multiplication</button>
+                    <button onclick="filterStats('add')" id="stat-tab-add" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-purple-300" id="ui-tab-add">Addition</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="glass-card p-4 rounded-2xl"><p id="ui-lbl-rec-chrono" class="text-xs font-bold text-star-gold">Record Chrono</p><p id="stat-best-chrono" class="font-display text-2xl font-bold">0 pts</p></div>
+                    <div class="glass-card p-4 rounded-2xl"><p id="ui-lbl-rec-avg" class="text-xs font-bold text-astroblue">Temps Moyen</p><p id="stat-best-avg-time" class="font-display text-2xl font-bold">--</p></div>
+                    <div class="glass-card p-4 rounded-2xl"><p id="ui-lbl-rec-fastest" class="text-xs font-bold text-astrogreen">Plus Rapide</p><p id="stat-fastest-ans" class="font-display text-2xl font-bold">--</p></div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl mb-6">
+                    <h3 id="ui-chart-title" class="text-xs font-bold text-purple-300 mb-4">Temps de réponse par table</h3>
+                    <div id="tables-speed-chart" class="flex items-end justify-between gap-1 h-32 pt-6"></div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 id="ui-history-title" class="text-xs font-bold text-purple-300">Historique</h3>
+                        <button onclick="confirmResetStats()" id="ui-btn-reset" class="text-xs text-red-400">Réinitialiser</button>
+                    </div>
+                    <table class="w-full text-left text-xs text-purple-200">
+                        <thead class="border-b border-white/10 text-purple-400">
+                            <tr><th id="ui-th-date">Date</th><th id="ui-th-mode">Mode</th><th id="ui-th-op">Opération</th><th id="ui-th-score">Score</th><th id="ui-th-acc">Précision</th><th id="ui-th-avg" class="text-right">Tps Moyen</th></tr>
+                        </thead>
+                        <tbody id="stats-history-tbody" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center text-xs text-purple-400/60 py-4">Astromaths • 🚀</footer>
+    </div>
+
+    <script>
+        const i18n = {
+            fr: {
+                flag: '🇫🇷', code: 'FR', subtitle: 'Mission Galactique des Nombres', stats: 'Stats',
+                menuTitle: "Prêt pour l'aventure ?", menuDesc: "Choisis tes réglages et entraîne-toi !",
+                opLabel: "Type d'opération", opMult: 'Multiplication', opAdd: 'Addition', opMix: 'Mixte',
+                titleMult: 'Choisir les tables de multiplication', titleAdd: "Choisir les tables d'addition", titleMix: 'Choisir les tables (Mode Mixte)',
+                selectAll: 'Toutes', clearAll: 'Effacer', modePracticeTitle: 'Mode Entraînement', modePracticeDesc: '10 questions • Sans stress',
+                modeTimedTitle: 'Défi Chrono (60s)', modeTimedDesc: 'Maximum de calculs !', qcmLabel: 'Mode Choix Multiple (QCM)',
+                question: 'Question', score: 'Score', quit: 'Abandonner', resTitle: 'Mission Accomplie !', resSubtitle: 'Super travail !',
+                newRecord: 'NOUVEAU RECORD !', lblScore: 'Score Final', lblAcc: 'Précision', lblAvg: 'Temps Moyen', lblFastest: 'Plus rapide',
+                errorsTitle: 'Calculs à revoir :', btnReplay: 'Rejouer', btnHome: 'Menu Principal', statsTitle: 'Statistiques & Records',
+                tabAll: 'Tous', tabMult: 'Multiplication', tabAdd: 'Addition', recChrono: 'Record Chrono (60s)', recAvg: 'Temps Moyen Record',
+                recFastest: 'Réponse la + Rapide', chartTitle: 'Temps de réponse moyen par table (s)', historyTitle: 'Dernières Sessions',
+                btnReset: 'Réinitialiser', thDate: 'Date', thMode: 'Mode', thOp: 'Opération', thScore: 'Score', thAcc: 'Précision', thAvg: 'Tps Moyen',
+                feedbackCorrect: 'Bravo ! +10 pts', feedbackWrong: 'Oups ! La réponse était', noData: 'Aucune partie', wrote: 'tu as écrit'
+            },
+            ro: {
+                flag: '🇷🇴', code: 'RO', subtitle: 'Misiunea Galactică a Numerelor', stats: 'Statistici',
+                menuTitle: "Ești gata pentru aventură?", menuDesc: "Alege configurările și exersează!",
+                opLabel: "Tipul de operație", opMult: 'Înmulțire', opAdd: 'Adunare', opMix: 'Mixt',
+                titleMult: 'Alege tablele de înmulțire', titleAdd: 'Alege tablele de adunare', titleMix: 'Alege tablele (Mod Mixt)',
+                selectAll: 'Toate', clearAll: 'Șterge', modePracticeTitle: 'Mod Antrenament', modePracticeDesc: '10 întrebări • Fără stres',
+                modeTimedTitle: 'Crono Sfidare (60s)', modeTimedDesc: 'Cât mai multe calcule!', qcmLabel: 'Mod Alegeri Multiple (Grilă)',
+                question: 'Întrebarea', score: 'Scor', quit: 'Abandonează', resTitle: 'Misiune Îndeplinită!', resSubtitle: 'Excelentă treabă!',
+                newRecord: 'RECORD NOU!', lblScore: 'Scor Final', lblAcc: 'Precizie', lblAvg: 'Timp Mediu', lblFastest: 'Cel mai rapid',
+                errorsTitle: 'Calcule de revizuit:', btnReplay: 'Joacă din nou', btnHome: 'Meniu Principal', statsTitle: 'Statistici & Recorduri',
+                tabAll: 'Toate', tabMult: 'Înmulțire', tabAdd: 'Adunare', recChrono: 'Record Crono (60s)', recAvg: 'Record Timp Mediu',
+                recFastest: 'Cel Mai Rapid Răspuns', chartTitle: 'Timpul mediu de răspuns pe tablă (s)', historyTitle: 'Ultimele Sesiuni',
+                btnReset: 'Resetează datele', thDate: 'Dată', thMode: 'Mod', thOp: 'Operație', thScore: 'Scor', thAcc: 'Precizie', thAvg: 'Timp Mediu',
+                feedbackCorrect: 'Bravo! +10 pct', feedbackWrong: 'Ups! Răspunsul corect era', noData: 'Nicio partidă', wrote: 'ai scris'
+            }
+        };
+
+        const state = {
+            lang: 'fr', soundEnabled: true, currentOperation: 'multiply', selectedTables: [1, 2, 3, 4, 5],
+            isQcmMode: false, currentScreen: 'menu',
+            game: { mode: 'practice', questionsTotal: 10, currentQuestionIndex: 0, score: 0, correctCount: 0, errors: [], currentQuestion: null, userAnswer: '', timerInterval: null, timeLeft: 60, questionStartTime: 0, questionTimes: [] },
+            stats: { totalStars: 0, tableStars: {}, history: [], tableTimes: {} }, statsFilter: 'all'
+        };
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function toggleLanguage() {
+            state.lang = state.lang === 'fr' ? 'ro' : 'fr';
+            applyLanguage(); renderTableSelector();
+            if (state.currentScreen === 'stats') renderStatsScreen();
+            playSound('click');
+        }
+
+        function applyLanguage() {
+            const t = i18n[state.lang];
+            document.getElementById('lang-flag').textContent = t.flag;
+            document.getElementById('lang-code').textContent = t.code;
+            document.getElementById('ui-subtitle').textContent = t.subtitle;
+            document.getElementById('ui-nav-stats').textContent = t.stats;
+            document.getElementById('ui-menu-title').textContent = t.menuTitle;
+            document.getElementById('ui-menu-desc').textContent = t.menuDesc;
+            document.getElementById('ui-op-label').textContent = t.opLabel;
+            document.getElementById('ui-op-mult').textContent = t.opMult;
+            document.getElementById('ui-op-add').textContent = t.opAdd;
+            document.getElementById('ui-op-mix').textContent = t.opMix;
+            document.getElementById('ui-select-all').textContent = t.selectAll;
+            document.getElementById('ui-clear-all').textContent = t.clearAll;
+            document.getElementById('ui-mode-practice-title').textContent = t.modePracticeTitle;
+            document.getElementById('ui-mode-practice-desc').textContent = t.modePracticeDesc;
+            document.getElementById('ui-mode-timed-title').textContent = t.modeTimedTitle;
+            document.getElementById('ui-mode-timed-desc').textContent = t.modeTimedDesc;
+            document.getElementById('ui-qcm-label').textContent = t.qcmLabel;
+            document.getElementById('ui-quit-btn').textContent = t.quit;
+            document.getElementById('ui-res-title').textContent = t.resTitle;
+            document.getElementById('ui-res-subtitle').textContent = t.resSubtitle;
+            document.getElementById('ui-res-lbl-score').textContent = t.lblScore;
+            document.getElementById('ui-res-lbl-acc').textContent = t.lblAcc;
+            document.getElementById('ui-res-lbl-avg').textContent = t.lblAvg;
+            document.getElementById('ui-res-lbl-fastest').textContent = t.lblFastest;
+            document.getElementById('ui-errors-title').textContent = t.errorsTitle;
+            document.getElementById('ui-btn-replay').textContent = t.btnReplay;
+            document.getElementById('ui-btn-home').textContent = t.btnHome;
+            document.getElementById('ui-stats-title').textContent = t.statsTitle;
+            document.getElementById('ui-tab-all').textContent = t.tabAll;
+            document.getElementById('ui-tab-mult').textContent = t.tabMult;
+            document.getElementById('ui-tab-add').textContent = t.tabAdd;
+            document.getElementById('ui-lbl-rec-chrono').textContent = t.recChrono;
+            document.getElementById('ui-lbl-rec-avg').textContent = t.recAvg;
+            document.getElementById('ui-lbl-rec-fastest').textContent = t.recFastest;
+            document.getElementById('ui-chart-title').textContent = t.chartTitle;
+            document.getElementById('ui-history-title').textContent = t.historyTitle;
+            document.getElementById('ui-btn-reset').textContent = t.btnReset;
+            document.getElementById('ui-th-date').textContent = t.thDate;
+            document.getElementById('ui-th-mode').textContent = t.thMode;
+            document.getElementById('ui-th-op').textContent = t.thOp;
+            document.getElementById('ui-th-score').textContent = t.thScore;
+            document.getElementById('ui-th-acc').textContent = t.thAcc;
+            document.getElementById('ui-th-avg').textContent = t.thAvg;
+            updateTableTitle();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateTableTitle() {
+            const t = i18n[state.lang];
+            const title = document.getElementById('tables-title');
+            if (state.currentOperation === 'multiply') title.textContent = t.titleMult;
+            else if (state.currentOperation === 'add') title.textContent = t.titleAdd;
+            else title.textContent = t.titleMix;
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                if (type === 'click') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.1, now);
+                    osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523, now); gain.gain.setValueAtTime(0.1, now);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, now); gain.gain.setValueAtTime(0.1, now);
+                    osc.start(now); osc.stop(now + 0.2);
+                }
+            } catch(e) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+            generateStarfield(); loadStatsFromStorage(); applyLanguage(); renderTableSelector();
+            window.addEventListener('keydown', handlePhysicalKeyboard);
+        });
+
+        function generateStarfield() {
+            const container = document.getElementById('stars-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 40; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = '2px'; star.style.height = '2px';
+                star.style.left = `${Math.random() * 100}%`; star.style.top = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                container.appendChild(star);
+            }
+        }
+
+        function toggleSound() { state.soundEnabled = !state.soundEnabled; }
+
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen-view').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`screen-${screenName}`).classList.remove('hidden');
+            state.currentScreen = screenName;
+            if (screenName === 'stats') renderStatsScreen();
+        }
+
+        function selectOperation(op) {
+            state.currentOperation = op;
+            document.querySelectorAll('.op-select-btn').forEach(btn => btn.className = 'op-select-btn flex-1 py-3 px-3 rounded-xl font-display font-bold text-xs border border-white/10 bg-white/5 text-purple-200');
+            document.getElementById(`op-btn-${op}`).className = 'op-select-btn flex-1 py-3 px-3 rounded-xl font-display font-bold text-xs border bg-astropurple/80 border-astropink text-white';
+            updateTableTitle(); renderTableSelector();
+        }
+
+        function renderTableSelector() {
+            const grid = document.getElementById('table-selector-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const isSelected = state.selectedTables.includes(i);
+                const card = document.createElement('button');
+                card.onclick = () => toggleTableSelection(i);
+                card.className = `p-3 rounded-xl font-display text-center border ${isSelected ? 'bg-astropink border-astropink text-white' : 'glass-card border-white/10 text-purple-200'}`;
+                let opSymbol = state.currentOperation === 'add' ? '+' : (state.currentOperation === 'mix' ? '±' : '×');
+                card.innerHTML = `<span class="text-xs font-bold">${opSymbol}${i}</span><div class="text-xl font-bold">${i}</div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        function toggleTableSelection(num) {
+            if (state.selectedTables.includes(num)) {
+                if (state.selectedTables.length > 1) state.selectedTables = state.selectedTables.filter(n => n !== num);
+            } else state.selectedTables.push(num);
+            renderTableSelector();
+        }
+
+        function selectAllTables() { state.selectedTables = [1,2,3,4,5,6,7,8,9,10]; renderTableSelector(); }
+        function clearTableSelection() { state.selectedTables = [1]; renderTableSelector(); }
+
+        function startPracticeMode() { state.game.mode = 'practice'; state.game.questionsTotal = 10; initGameSession(); }
+        function startTimedMode() { state.game.mode = 'timed'; state.game.timeLeft = 60; initGameSession(); }
+
+        function initGame
